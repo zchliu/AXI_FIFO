@@ -49,7 +49,6 @@
 #include "platform.h"
 #include "xil_printf.h"
 #include "xaxidma.h"
-#include "xtime_l.h"
 #include "xexample.h"
 
 // AXI DMA Instance
@@ -89,29 +88,27 @@ int init_DMA()
 int Run_HW_Accelerator(unsigned int A[1], unsigned int B[1], int size)
 {
 	//transfer A to the Vivado HLS block
-	int status = XAxiDma_SimpleTransfer(&AxiDma, (unsigned int *)A, size, XAXIDMA_DMA_TO_DEVICE);
+	int status = XAxiDma_SimpleTransfer(&AxiDma, (UINTPTR)A, size, XAXIDMA_DMA_TO_DEVICE);
 	if (status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
-	printf("1");
+
 	/* Wait for transfer to be done */
 	while (XAxiDma_Busy(&AxiDma, XAXIDMA_DMA_TO_DEVICE)) ;
 
 	//get results from the Vivado HLS block
-	status = XAxiDma_SimpleTransfer(&AxiDma, (unsigned int *)B, size, XAXIDMA_DEVICE_TO_DMA);
+	status = XAxiDma_SimpleTransfer(&AxiDma, (UINTPTR)B, size, XAXIDMA_DEVICE_TO_DMA);
 	if (status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
-	printf("2");
+
 	/* Wait for transfer to be done */
 	while (XAxiDma_Busy(&AxiDma, XAXIDMA_DEVICE_TO_DMA)) ;
-	printf("3");
 
 	//poll the DMA engine to verify transfers are complete
 	while ((XAxiDma_Busy(&AxiDma, XAXIDMA_DEVICE_TO_DMA)) || (XAxiDma_Busy(&AxiDma, XAXIDMA_DMA_TO_DEVICE))) ;
 //	while (XAxiDma_Busy(&AxiDma, XAXIDMA_DMA_TO_DEVICE)) ;
 
-	printf("4");
 	return 0;
 }
 
@@ -121,9 +118,6 @@ int main()
     unsigned int A[1];
     unsigned int B[1];
     int size=sizeof(unsigned int);
-
-    XTime tStart,tEnd;
-    u32 tUsed;
 
     status=init_DMA();
     // DMA init
@@ -165,20 +159,12 @@ int main()
 	print("\rCache cleared\n\r");
 
 	// HW compute
-	XTime_GetTime(&tStart);
 	status=Run_HW_Accelerator(A,B,size);
-	XTime_GetTime(&tEnd);
-
-	// 放在最后打印不出来
 	printf("B=%d",B[0]);
-
-	tUsed=((tEnd-tStart)*1000)/(COUNTS_PER_SECOND);
-	printf("HW time is %ldms\n",tUsed);
 
     cleanup_platform();
     return 0;
 }
-
 
 
 
